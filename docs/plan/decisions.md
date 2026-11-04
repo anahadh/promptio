@@ -15,3 +15,16 @@ Add new decisions at the bottom with the next number. Never edit another item's 
 | D9 | Result streams into the chat bar live; original restorable (undo). |
 | D10 | Cut for v1: privacy/legal, cost/latency strategy, testing/CI as separate items. Architecture keeps a short "what data goes where" note and a latency/cost budget. Testing is folded into the eval harness. |
 | D11 | Pace: fast. Ask the user only when genuinely unsure. |
+| D12 | Component results carry both `id` (component type) and `text` (the matched prompt span, or null). |
+| D13 | No prompt-level score at runtime. Per-component `weak` drives behaviour. Supersedes the `promptScore` and weights in 01's first draft. |
+| D14 | Downstream rubric: 4 criteria per mode, each approved by the user before use. Grader is Jev Score, mapped to 1-5 via `clamp(ceil(s*5),1,5)`. |
+| D15 | Weak threshold is calibrated from downstream gain (single-component rewrites), not hand labels. Validation prompts come from WildChat / LMSYS-Chat-1M plus synthetic prompts. |
+| D16 | Components are `required` or optional. An absent required component is weak. An absent optional one is skipped, not added. Refines 01's "absent ⇒ weak". |
+| D17 | `role` is an optional shared component: scored and improved when present, never injected when absent. |
+| D18 | v1 modes: `coding`, `ideas`, `business_plan`. Each is a data file (`ModeDef`). The mode comes from the user's click, with no auto-detection. |
+| D19 | In our data model, the presence question field is named `present`. "Noul" appears only inside the Jev client. |
+| D20 | v1 modes: `writing`, `coding`, `research`, `learning`, `analysis`, `ideas`. Business plan and advice are dropped for now. Supersedes D18's mode list; the rest of D18 still stands. |
+| D21 | Component changes: writing `tone` required; research `sources` required, `known_info` removed; learning `focus` replaced by required `objective`, `method` required; analysis `method` required (default: choose and justify); ideas `audience` removed, `quantity_range` becomes optional inferred `scale`, `criteria` required. |
+| D22 | Every component has a `fill` type: `infer` (Haiku writes a default) or `ask` (check chat history, then ask inline; skipping inserts a `[placeholder]`). Never invent user-only facts. Settled parts enhance immediately; questions block only their own parts. Detailed in feature 14. |
+| D23 | Post-MVP, parked: friction cap (max 2 questions per enhancement) and a local user profile that answers repeat questions. Revisit in feature 12. |
+| D24 | Every rubric criterion must be judgeable from the prompt and the output alone, with no outside facts or search. Coding correctness is checked by running tests, not by Jev. |
