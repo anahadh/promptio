@@ -5,5 +5,5 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true
   },
-  "include": [".wxt/wxt.d.ts", "core", "extension", "wxt.config.ts"]
+  "include": [".wxt/wxt.d.ts", "core", "extension", "scripts", "wxt.config.ts"]
 }

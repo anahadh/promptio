@@ -10,11 +10,18 @@
     "zip": "wxt zip",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "demo:decompose": "tsx scripts/decompose-demo.ts",
     "postinstall": "wxt prepare"
   },
   "devDependencies": {
+    "@types/node": "^22.20.5",
+    "tsx": "^4.23.15",
     "typescript": "~5.9.3",
     "vitest": "^3.2.4",
     "wxt": "^0.21.5"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.5.0",
+    "zod": "^4.6.7"
   }
 }

@@ -2,3 +2,6 @@ docs/
 node_modules/
 .wxt/
 .output/
+.env*
+# Local live-test scripts (e.g. the decomposer demo) and their reports
+scripts/
