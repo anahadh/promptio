@@ -24,3 +24,6 @@ Rules: one feature active at a time. Each feature goes draft, user review, done.
 ## Parked (post-MVP)
 - Friction cap: at most 2 questions per enhancement (D23).
 - Local user profile that answers repeat questions (D23).
+
+## Later (not parked, just not now)
+- Expand `fixedConstraints` for every mode; the current ones are too thin (D27).

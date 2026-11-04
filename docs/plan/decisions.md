@@ -28,3 +28,6 @@ Add new decisions at the bottom with the next number. Never edit another item's 
 | D22 | Every component has a `fill` type: `infer` (Haiku writes a default) or `ask` (check chat history, then ask inline; skipping inserts a `[placeholder]`). Never invent user-only facts. Settled parts enhance immediately; questions block only their own parts. Detailed in feature 14. |
 | D23 | Post-MVP, parked: friction cap (max 2 questions per enhancement) and a local user profile that answers repeat questions. Revisit in feature 12. |
 | D24 | Every rubric criterion must be judgeable from the prompt and the output alone, with no outside facts or search. Coding correctness is checked by running tests, not by Jev. |
+| D25 | Shared specificity scale `vague / general / concrete / precise`. Each component defines only one short example per level (`examples`), not long level text. Runtime results report a single level value. Supersedes `levels` in 02. |
+| D26 | `fill` renamed to `ifMissing`. It stays fixed per component because it encodes who could know the answer, which the model must not decide (D22). Runtime still checks the prompt and chat history first. |
+| D27 | `fixedConstraints` are first drafts and too thin; expand them for every mode later. |
