@@ -3,5 +3,6 @@ node_modules/
 .wxt/
 .output/
 .env*
+!.env.example
 # Local live-test scripts (e.g. the decomposer demo) and their reports
 scripts/

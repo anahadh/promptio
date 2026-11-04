@@ -1,12 +1,14 @@
 /**
- * Map a Jev Score (0-1) to the 1-5 rubric scale (D14): 0.2 -> 1, 0.4 -> 2, ... 1.0 -> 5.
- * In-between values round up; 0 counts as 1.
+ * Map a Jev rubric Score to the 1-5 rubric scale (D14, corrected by D29).
+ * Jev's Score is the expected level index, 0..levels-1, not 0-1. Rubric criteria use
+ * 5 levels, so the expected index 0..4 maps to 1..5 by adding one. Fractional values
+ * are kept, so averages across eval cases stay precise.
  */
-export function toRubricScale(score: number): 1 | 2 | 3 | 4 | 5 {
-  if (!Number.isFinite(score) || score < 0 || score > 1) {
-    throw new RangeError(`Jev score must be in [0, 1], got ${score}`);
+export const RUBRIC_LEVELS = 5;
+
+export function toRubricScale(raw: number): number {
+  if (!Number.isFinite(raw) || raw < 0 || raw > RUBRIC_LEVELS - 1) {
+    throw new RangeError(`Rubric score must be in [0, ${RUBRIC_LEVELS - 1}], got ${raw}`);
   }
-  // Round to 6 decimals first so float noise (e.g. 0.6000000001) doesn't bump a level.
-  const scaled = Math.ceil(Math.round(score * 5 * 1e6) / 1e6);
-  return Math.min(5, Math.max(1, scaled)) as 1 | 2 | 3 | 4 | 5;
+  return raw + 1;
 }

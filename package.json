@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "demo:decompose": "tsx scripts/decompose-demo.ts",
+    "demo:analyze": "tsx scripts/analyze-demo.ts",
+    "jev:viewer": "tsx scripts/jev-viewer.ts",
     "postinstall": "wxt prepare"
   },
   "devDependencies": {
@@ -22,6 +24,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.5.0",
+    "@typesafe-ai/sdk": "^0.7.0",
     "zod": "^4.6.7"
   }
 }

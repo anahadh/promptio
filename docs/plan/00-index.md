@@ -1,6 +1,6 @@
 # Promptio: feature index
 
-**Active feature:** none (02 done; code next)
+**Active feature:** none. Built so far: mode data (02), Haiku decomposer, Jev client (part of 05). Next: rewriter (06). Open problems: `../problems.md`.
 
 Rules: one feature active at a time. Each feature goes draft, user review, done. Decisions go to `decisions.md`.
 
@@ -27,3 +27,5 @@ Rules: one feature active at a time. Each feature goes draft, user review, done.
 
 ## Later (not parked, just not now)
 - Expand `fixedConstraints` for every mode; the current ones are too thin (D27).
+- Brainstorm: let Jev classify the prompt's parts instead of Haiku. Jev ran in ~235 ms vs ~1.4-2.1 s for Haiku. Sentence splitting is unreliable, so piece-finding needs another approach.
+- Shared components overlap with mode-specific ones (context vs audience, constraints vs tone). Jev counts them as present while Haiku gives the span to one, which produces "unlocated" rows. Decide whether to merge or sharpen them.

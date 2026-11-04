@@ -1,23 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { toRubricScale } from "./scale";
 
-describe("toRubricScale (D14)", () => {
+describe("toRubricScale (D14 as corrected by D29)", () => {
   it.each([
     [0, 1],
-    [0.1, 1],
-    [0.2, 1],
-    [0.21, 2],
-    [0.4, 2],
-    [0.6, 3],
-    [0.6000000001, 3],
-    [0.8, 4],
-    [0.95, 5],
-    [1, 5],
-  ])("maps %f to %i", (score, expected) => {
-    expect(toRubricScale(score)).toBe(expected);
+    [1, 2],
+    [2.5, 3.5],
+    [4, 5],
+  ])("maps expected level %f to %f", (raw, expected) => {
+    expect(toRubricScale(raw)).toBe(expected);
   });
 
-  it.each([-0.1, 1.1, Number.NaN])("rejects %f", (score) => {
-    expect(() => toRubricScale(score)).toThrow(RangeError);
+  it.each([-0.1, 4.1, Number.NaN])("rejects %f", (raw) => {
+    expect(() => toRubricScale(raw)).toThrow(RangeError);
   });
 });
