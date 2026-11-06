@@ -7,7 +7,7 @@ import { enhanceFromAnalysis } from "./enhance";
 import type { PartGenerator } from "./generate";
 import { checkNumbers, leaksProcess, newNumbers } from "./guard";
 import { VERBATIM_MIN_CHARS, assignOwnership, isFiller, labelOf, planEnhancement } from "./plan";
-import { buildPartMessage } from "./prompt";
+import { GUIDANCE_SYSTEM, buildGuidanceMessage, buildPartMessage } from "./prompt";
 import { InOrderReveal, assemble } from "./reveal";
 
 /** Analysis fixture: every component is skipped unless overridden with a status and quoted text. */
@@ -152,8 +152,41 @@ describe("planEnhancement", () => {
   it("maps each status to its action", () => {
     expect(part("goal")?.action).toBe("improve");
     expect(part("constraints")?.action).toBe("polish");
-    expect(part("output_format")?.action).toBe("infer");
     expect(part("criteria")?.action).toBe("placeholder");
+    const coding = "fix the login";
+    const inferred = planEnhancement("coding", coding, components("coding", coding, { acceptance: { status: "missing" } }));
+    expect(inferred.parts.find((p) => p.id === "acceptance")?.action).toBe("infer");
+  });
+
+  it("always adds guidance, last in the final paragraph", () => {
+    expect(plan.parts.at(-1)).toMatchObject({ id: "guidance", action: "guidance", paragraph: 2, staticText: null });
+  });
+
+  it("puts guidance before the fixed constraints", () => {
+    const text = "write a launch email";
+    const ids = planEnhancement("writing", text, components("writing", text, {})).parts.map((p) => p.id);
+    expect(ids.slice(-2)).toEqual(["guidance", "fixed_constraints"]);
+  });
+
+  it("folds output_format and scale into guidance when the user didn't state them", () => {
+    expect(part("output_format")).toBeUndefined();
+    expect(part("scale")).toBeUndefined();
+    expect(plan.omitted).toContainEqual({ id: "output_format", reason: "guidance" });
+    expect(plan.omitted).toContainEqual({ id: "scale", reason: "guidance" });
+  });
+
+  it("keeps output_format and scale as their own parts when the user stated them", () => {
+    const text = "give me 5 quick ideas as a table";
+    const stated = planEnhancement(
+      "ideas",
+      text,
+      components("ideas", text, {
+        scale: { status: "ok", quotes: ["5 quick ideas"] },
+        output_format: { status: "vague", quotes: ["as a table"] },
+      }),
+    );
+    expect(stated.parts.find((p) => p.id === "scale")?.action).toBe("polish");
+    expect(stated.parts.find((p) => p.id === "output_format")?.action).toBe("improve");
   });
 
   it("writes labelled placeholders from the ask text, with no AI", () => {
@@ -168,7 +201,7 @@ describe("planEnhancement", () => {
   });
 
   it("orders parts by the mode's layout", () => {
-    expect(plan.parts.map((p) => p.id)).toEqual(["goal", "criteria", "constraints", "output_format"]);
+    expect(plan.parts.map((p) => p.id)).toEqual(["goal", "criteria", "constraints", "guidance"]);
     expect(part("goal")?.paragraph).toBe(1);
     expect(part("criteria")?.paragraph).toBe(2);
   });
@@ -263,8 +296,12 @@ describe("number guard", () => {
     expect(checkNumbers(part("constraints"), prompt, "$5000 budget")).toMatchObject({ outcome: "reject" });
   });
 
-  it("only warns on infer parts, where a default may hold a number", () => {
-    expect(checkNumbers(part("output_format"), prompt, "list 5 ideas")).toMatchObject({ outcome: "warn" });
+  it("only warns on guidance and infer parts, where a choice may hold a number", () => {
+    expect(checkNumbers(part("guidance"), prompt, "list 15 ideas")).toMatchObject({ outcome: "warn" });
+    const text = "fix the login";
+    const coding = planEnhancement("coding", text, components("coding", text, { acceptance: { status: "missing" } }));
+    const acceptance = coding.parts.find((p) => p.id === "acceptance")!;
+    expect(checkNumbers(acceptance, text, "add 2 tests")).toMatchObject({ outcome: "warn" });
   });
 
   it("passes rewrites that use only the prompt's numbers", () => {
@@ -301,6 +338,14 @@ describe("buildPartMessage", () => {
     const placeholder = plan.parts.find((p) => p.action === "placeholder")!;
     expect(() => buildPartMessage(getMode("ideas"), prompt, placeholder, [])).toThrow();
   });
+
+  it("tells guidance the mode's focus, what's stated, and what others cover", () => {
+    const message = buildGuidanceMessage(getMode("ideas"), prompt, plan.parts.filter((p) => p.id !== "guidance"));
+    expect(message).toContain("- avoid the obvious");
+    expect(message).toContain('- constraints: "ignore this"');
+    expect(message).toContain("do not write about them: criteria");
+    expect(message.match(/<\/prompt>/g)).toHaveLength(1);
+  });
 });
 
 describe("enhanceFromAnalysis (fake generator)", () => {
@@ -318,7 +363,7 @@ describe("enhanceFromAnalysis (fake generator)", () => {
   /** Answers based on which part the message is for. */
   const fake =
     (answers: Record<string, string | Error>): PartGenerator =>
-    async (message, onDelta) => {
+    async ({ message }, onDelta) => {
       const id = message.match(/^Part: (\w+)\./m)?.[1] ?? "";
       const answer = answers[id];
       if (answer instanceof Error) throw answer;
@@ -328,7 +373,7 @@ describe("enhanceFromAnalysis (fake generator)", () => {
 
   it("assembles parts in layout order, with placeholders and paragraphs", async () => {
     const result = await enhanceFromAnalysis(
-      fake({ goal: "I'd like ideas for an offsite.", constraints: "The budget is $2000.", output_format: "List them." }),
+      fake({ goal: "I'd like ideas for an offsite.", constraints: "The budget is $2000.", guidance: "List them." }),
       analysis,
       prompt,
     );
@@ -340,7 +385,7 @@ describe("enhanceFromAnalysis (fake generator)", () => {
 
   it("keeps a failed part's original text, reports it, and still applies the rest", async () => {
     const result = await enhanceFromAnalysis(
-      fake({ goal: new Error("overloaded"), constraints: "The budget is $2000.", output_format: "List them." }),
+      fake({ goal: new Error("overloaded"), constraints: "The budget is $2000.", guidance: "List them." }),
       analysis,
       prompt,
     );
@@ -350,9 +395,9 @@ describe("enhanceFromAnalysis (fake generator)", () => {
     expect(goal).toMatchObject({ outcome: "failed", warning: "Generation failed: overloaded" });
   });
 
-  it("drops a failed infer part, since the user wrote nothing for it", async () => {
+  it("drops failed guidance, since the user wrote nothing for it", async () => {
     const result = await enhanceFromAnalysis(
-      fake({ goal: "Ideas.", constraints: "Budget $2000.", output_format: new Error("overloaded") }),
+      fake({ goal: "Ideas.", constraints: "Budget $2000.", guidance: new Error("overloaded") }),
       analysis,
       prompt,
     );
@@ -361,7 +406,7 @@ describe("enhanceFromAnalysis (fake generator)", () => {
 
   it("rejects an invented number and falls back to the user's text", async () => {
     const result = await enhanceFromAnalysis(
-      fake({ goal: "Ideas for 50 people.", constraints: "The budget is $2000.", output_format: "List them." }),
+      fake({ goal: "Ideas for 50 people.", constraints: "The budget is $2000.", guidance: "List them." }),
       analysis,
       prompt,
     );
@@ -372,7 +417,7 @@ describe("enhanceFromAnalysis (fake generator)", () => {
 
   it("rejects a rewrite that talks about the task instead of writing it", async () => {
     const result = await enhanceFromAnalysis(
-      fake({ goal: "The text I own is just 'write', so I should state it.", constraints: "Budget $2000.", output_format: "List." }),
+      fake({ goal: "The text I own is just 'write', so I should state it.", constraints: "Budget $2000.", guidance: "List." }),
       analysis,
       prompt,
     );
@@ -383,9 +428,47 @@ describe("enhanceFromAnalysis (fake generator)", () => {
     expect(leaksProcess("Give me ideas for an offsite.")).toBe(false);
   });
 
+  it("treats NONE or empty guidance as nothing to add, not an error", async () => {
+    for (const answer of ["NONE", "none.", "  "]) {
+      const result = await enhanceFromAnalysis(fake({ goal: "Ideas.", constraints: "Budget $2000.", guidance: answer }), analysis, prompt);
+      expect(result.text).toBe("Ideas.\n\nCriteria: [what makes an idea good here?] Budget $2000.");
+      expect(result.parts.find((p) => p.id === "guidance")).toMatchObject({ outcome: "generated", text: "", warning: null });
+    }
+  });
+
+  it("keeps new numbers in guidance with a warning", async () => {
+    const result = await enhanceFromAnalysis(fake({ goal: "Ideas.", constraints: "Budget $2000.", guidance: "Give me 15 options." }), analysis, prompt);
+    expect(result.text).toContain("Give me 15 options.");
+    expect(result.parts.find((p) => p.id === "guidance")).toMatchObject({ outcome: "generated", warning: "Default adds 15." });
+  });
+
+  it("rejects guidance that comments on the prompt, and drops it", async () => {
+    const result = await enhanceFromAnalysis(
+      fake({ goal: "Ideas.", constraints: "Budget $2000.", guidance: "The prompt does not say how many, so give 10." }),
+      analysis,
+      prompt,
+    );
+    expect(result.text).not.toContain("does not say");
+    expect(result.parts.find((p) => p.id === "guidance")?.outcome).toBe("rejected");
+  });
+
+  it("sends guidance its own instructions", async () => {
+    const systems: Record<string, string> = {};
+    await enhanceFromAnalysis(
+      async ({ system, message }) => {
+        systems[message.match(/^Part: (\w+)\./m)?.[1] ?? ""] = system;
+        return { text: "Text.", usage: { inputTokens: 0, outputTokens: 0 } };
+      },
+      analysis,
+      prompt,
+    );
+    expect(systems.guidance).toBe(GUIDANCE_SYSTEM);
+    expect(systems.goal).not.toBe(GUIDANCE_SYSTEM);
+  });
+
   it("treats empty output as a failure", async () => {
     const result = await enhanceFromAnalysis(
-      fake({ goal: "   ", constraints: "Budget $2000.", output_format: "List." }),
+      fake({ goal: "   ", constraints: "Budget $2000.", guidance: "List." }),
       analysis,
       prompt,
     );
@@ -395,7 +478,7 @@ describe("enhanceFromAnalysis (fake generator)", () => {
   it("reports progress in order, ending on the same text as the result", async () => {
     const seen: string[] = [];
     const result = await enhanceFromAnalysis(
-      fake({ goal: "Ideas.", constraints: "Budget $2000.", output_format: "List." }),
+      fake({ goal: "Ideas.", constraints: "Budget $2000.", guidance: "List." }),
       analysis,
       prompt,
       { onUpdate: (p) => seen.push(p.text) },

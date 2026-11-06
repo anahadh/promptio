@@ -6,7 +6,7 @@ import type { ModeId } from "../types";
 import { type PartGenerator, haikuGenerator } from "./generate";
 import { checkNumbers, leaksProcess } from "./guard";
 import { type EnhancementPlan, type PartAction, planEnhancement } from "./plan";
-import { buildPartMessage } from "./prompt";
+import { ENHANCE_SYSTEM, GUIDANCE_SYSTEM, NO_GUIDANCE, buildGuidanceMessage, buildPartMessage } from "./prompt";
 import { InOrderReveal, type PartState, assemble } from "./reveal";
 
 export type PartOutcome = {
@@ -75,7 +75,11 @@ export async function enhanceFromAnalysis(
       const others = plan.parts.filter((p) => p !== part);
       let result: Pick<PartOutcome, "text" | "outcome" | "warning">;
       try {
-        const generated = await generate(buildPartMessage(mode, prompt, part, others), (delta) => {
+        const isGuidance = part.action === "guidance";
+        const request = isGuidance
+          ? { system: GUIDANCE_SYSTEM, message: buildGuidanceMessage(mode, prompt, others) }
+          : { system: ENHANCE_SYSTEM, message: buildPartMessage(mode, prompt, part, others) };
+        const generated = await generate(request, (delta) => {
           reveal.append(index, delta);
           emit();
         });
@@ -83,9 +87,11 @@ export async function enhanceFromAnalysis(
         usage.outputTokens += generated.usage.outputTokens;
 
         const text = generated.text.trim();
-        if (!text) throw new Error("Haiku returned no text.");
+        if (!text && !isGuidance) throw new Error("Haiku returned no text.");
         const verdict = checkNumbers(part, prompt, text);
-        if (leaksProcess(text)) {
+        if (isGuidance && (!text || NO_GUIDANCE.test(text))) {
+          result = { text: "", outcome: "generated", warning: null }; // nothing to add is a valid answer
+        } else if (leaksProcess(text)) {
           result = { text: original, outcome: "rejected", warning: `Rejected: commented on the task instead of writing it ("${text}").` };
         } else if (verdict.outcome === "reject") {
           const warning = `Rejected: added ${verdict.numbers.join(", ")}, which the prompt doesn't state.`;

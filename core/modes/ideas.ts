@@ -25,6 +25,13 @@ export const ideas = {
     },
   ],
   layout: [["role"], ["context", "goal"], ["criteria", "constraints", "scale", "output_format"]],
+  guidanceFocus: [
+    "how many options",
+    "a range of styles or approaches",
+    "avoid the obvious",
+    "a short reason for each",
+    "top picks",
+  ],
   fixedConstraints: [],
   rubric: [
     { id: "criteria_fit", judge: "jev", question: "Do the ideas meet the criteria and constraints the prompt states?" },

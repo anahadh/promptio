@@ -59,6 +59,12 @@ export const writing = {
     },
   ],
   layout: [["role"], ["context", "goal", "audience", "source_text", "key_points"], ["tone", "constraints", "output_format"]],
+  guidanceFocus: [
+    "clear structure and a strong opening",
+    "length that suits the reader",
+    "concrete over generic wording",
+    "clichés to avoid",
+  ],
   fixedConstraints: [
     "No filler openers or closers (e.g. 'Certainly!', 'I hope this helps').",
     "No stock AI phrasing (e.g. 'delve', 'in today's fast-paced world', 'it's important to note').",

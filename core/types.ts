@@ -65,6 +65,8 @@ export type ModeDef = {
    * Every component appears exactly once (checked in modes.test.ts).
    */
   readonly layout: readonly [readonly string[], readonly string[], readonly string[]];
+  /** What good guidance covers for this kind of task. Haiku picks what fits the actual request. */
+  readonly guidanceFocus: readonly string[];
   /**
    * Constraints always appended to the enhanced prompt in this mode (e.g. writing anti-slop).
    * TODO: these are first drafts and too thin; expand them for every mode later.

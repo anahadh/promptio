@@ -1,5 +1,4 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import { ENHANCE_SYSTEM } from "./prompt";
 
 export const ENHANCE_MODEL = "claude-haiku-5-5";
 
@@ -8,17 +7,19 @@ export type GeneratedPart = {
   readonly usage: { readonly inputTokens: number; readonly outputTokens: number };
 };
 
-/** Generates one part from its message, reporting text as it streams. Injected so tests need no API. */
-export type PartGenerator = (message: string, onDelta: (delta: string) => void) => Promise<GeneratedPart>;
+export type PartRequest = { readonly system: string; readonly message: string };
+
+/** Generates one part, reporting text as it streams. Injected so tests need no API. */
+export type PartGenerator = (request: PartRequest, onDelta: (delta: string) => void) => Promise<GeneratedPart>;
 
 /** Streaming Haiku generator. Plain text output, so it can appear word by word. */
 export function haikuGenerator(client: Anthropic): PartGenerator {
-  return async (message, onDelta) => {
+  return async ({ system, message }, onDelta) => {
     const stream = client.messages.stream({
       model: ENHANCE_MODEL,
       max_tokens: 8000,
       output_config: { effort: "medium" },
-      system: ENHANCE_SYSTEM,
+      system,
       messages: [{ role: "user", content: message }],
     });
     stream.on("text", (delta) => onDelta(delta));

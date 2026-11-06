@@ -44,6 +44,12 @@ export const coding = {
     },
   ],
   layout: [["role"], ["tech_stack", "context", "current_state", "goal"], ["constraints", "acceptance", "output_format"]],
+  guidanceFocus: [
+    "find the root cause before fixing",
+    "edge cases to handle",
+    "how to verify it works",
+    "keep the change small and leave unrelated code alone",
+  ],
   fixedConstraints: [],
   rubric: [
     { id: "correctness", judge: "exec", question: "Does the code pass the eval case's tests?" },

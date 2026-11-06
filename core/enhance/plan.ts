@@ -9,8 +9,14 @@ import type { ComponentDef, ModeId } from "../types";
  * - placeholder: missing, and only the user knows; labelled gap, no AI.
  * - verbatim: pasted code or long material; copied exactly, no AI.
  * - fixed: the mode's always-on constraints, no AI.
+ * - guidance: advice on doing the task well, claiming nothing about the user.
  */
-export type PartAction = "polish" | "improve" | "infer" | "placeholder" | "verbatim" | "fixed";
+export type PartAction = "polish" | "improve" | "infer" | "placeholder" | "verbatim" | "fixed" | "guidance";
+
+export type OmitReason = "skipped" | "vague_no_text" | "covered" | "guidance";
+
+/** When the user didn't state these, the guidance part covers them, so separate calls can't repeat each other. */
+const COVERED_BY_GUIDANCE: ReadonlySet<string> = new Set(["output_format", "scale"]);
 
 export type PlannedPart = {
   readonly id: string;
@@ -21,7 +27,7 @@ export type PlannedPart = {
   readonly excerpts: readonly string[];
   /** Final text for actions that need no AI; null when Haiku generates it. */
   readonly staticText: string | null;
-  /** Null only for the synthetic fixed-constraints part. */
+  /** Null for the synthetic guidance and fixed-constraints parts. */
   readonly def: ComponentDef | null;
 };
 
@@ -29,7 +35,7 @@ export type EnhancementPlan = {
   readonly mode: ModeId;
   readonly parts: readonly PlannedPart[];
   /** Components that produce nothing, with the reason. */
-  readonly omitted: readonly { readonly id: string; readonly reason: "skipped" | "vague_no_text" | "covered" }[];
+  readonly omitted: readonly { readonly id: string; readonly reason: OmitReason }[];
 };
 
 /** Longer excerpts, and anything with a code fence, are never sent through a rewrite. */
@@ -141,7 +147,7 @@ export function planEnhancement(
   const byId = new Map(components.map((c) => [c.id, c]));
   const ownership = assignOwnership(modeId, prompt, components);
   const parts: PlannedPart[] = [];
-  const omitted: { id: string; reason: "skipped" | "vague_no_text" | "covered" }[] = [];
+  const omitted: { id: string; reason: OmitReason }[] = [];
 
   mode.layout.forEach((ids, paragraph) => {
     for (const id of ids) {
@@ -157,6 +163,8 @@ export function planEnhancement(
         } else {
           parts.push({ ...base, action: component.status === "ok" ? "polish" : "improve", staticText: null });
         }
+      } else if (COVERED_BY_GUIDANCE.has(id)) {
+        omitted.push({ id, reason: "guidance" });
       } else if (component.status === "missing") {
         if (def.ifMissing === "infer") parts.push({ ...base, action: "infer", staticText: null });
         else parts.push({ ...base, action: "placeholder", staticText: `${labelOf(id)}: [${def.ask ?? "please add this"}]` });
@@ -166,6 +174,15 @@ export function planEnhancement(
         omitted.push({ id, reason: component.status === "skipped" ? "skipped" : "covered" });
       }
     }
+  });
+
+  parts.push({
+    id: "guidance",
+    paragraph: mode.layout.length - 1,
+    action: "guidance",
+    excerpts: [],
+    staticText: null,
+    def: null,
   });
 
   const fixed = mode.fixedConstraints.filter((line) => !prompt.includes(line));

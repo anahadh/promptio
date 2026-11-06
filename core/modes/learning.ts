@@ -44,6 +44,12 @@ export const learning = {
     },
   ],
   layout: [["role"], ["level", "context", "goal", "objective"], ["method", "constraints", "output_format"]],
+  guidanceFocus: [
+    "build from what the learner knows",
+    "a worked example",
+    "common misconceptions",
+    "a way to check understanding",
+  ],
   fixedConstraints: [],
   rubric: [
     {

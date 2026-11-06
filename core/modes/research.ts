@@ -30,6 +30,12 @@ export const research = {
     },
   ],
   layout: [["role"], ["context", "goal", "scope"], ["sources", "constraints", "output_format"]],
+  guidanceFocus: [
+    "separate established findings from disputed ones",
+    "prefer primary sources",
+    "note dates and weak evidence",
+    "lead with a direct answer",
+  ],
   fixedConstraints: [],
   rubric: [
     { id: "citations", judge: "jev", question: "Does every factual claim in the output have a citation?" },

@@ -47,6 +47,10 @@ describe.each(MODE_IDS)("mode %s", (modeId) => {
     }
   });
 
+  it("gives guidance something to focus on", () => {
+    expect(mode.guidanceFocus.length).toBeGreaterThan(0);
+  });
+
   it("only sets a fixed default on infer components", () => {
     for (const c of mode.components) {
       if (c.ifMissing !== "infer") expect(c.inferDefault, c.id).toBeUndefined();

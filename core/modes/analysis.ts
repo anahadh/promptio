@@ -45,6 +45,14 @@ export const analysis = {
     },
   ],
   layout: [["role"], ["material", "context", "goal", "decision"], ["method", "constraints", "output_format"]],
+  guidanceFocus: [
+    "state the method",
+    "quantify findings",
+    "separate data from interpretation",
+    "consider other explanations",
+    "note limits",
+    "end with a recommendation",
+  ],
   fixedConstraints: [],
   rubric: [
     {
