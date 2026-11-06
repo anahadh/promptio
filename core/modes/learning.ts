@@ -10,6 +10,7 @@ export const learning = {
       id: "level",
       required: true,
       ifMissing: "ask",
+      ask: "what do you already know?",
       present: "Does the prompt state what the learner already knows?",
       score: "How specific is the learner's stated level?",
       examples: ["(no level given)", "beginner", "I know basic Python", "know Python basics, never used recursion"],
@@ -18,6 +19,7 @@ export const learning = {
       id: "objective",
       required: true,
       ifMissing: "ask",
+      ask: "what do you want to be able to do afterwards?",
       present: "Does the prompt state what the learner wants to be able to do afterwards?",
       score: "How specific is the learning objective?",
       examples: [
@@ -41,6 +43,7 @@ export const learning = {
       ],
     },
   ],
+  layout: [["role"], ["level", "context", "goal", "objective"], ["method", "constraints", "output_format"]],
   fixedConstraints: [],
   rubric: [
     {

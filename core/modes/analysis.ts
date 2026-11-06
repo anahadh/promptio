@@ -10,6 +10,7 @@ export const analysis = {
       id: "material",
       required: true,
       ifMissing: "ask",
+      ask: "paste or describe the data or document",
       present: "Does the prompt provide or describe the data or document to analyze?",
       score: "How specific is the provided or described material?",
       examples: [
@@ -22,8 +23,8 @@ export const analysis = {
     {
       id: "method",
       required: true,
-      // When absent, the inferred default is "choose and justify the method first" (D21).
       ifMissing: "infer",
+      inferDefault: "Choose the method that fits this data and justify it before applying it.", // D21
       present: "Does the prompt state the comparisons, metrics or tests to use?",
       score: "How specific is the requested analysis method?",
       examples: [
@@ -37,11 +38,13 @@ export const analysis = {
       id: "decision",
       required: false,
       ifMissing: "ask",
+      ask: "what decision will this inform?",
       present: "Does the prompt state what decision the analysis will inform?",
       score: "How specific is the decision the analysis informs?",
       examples: ["insights", "help with budgeting", "decide on ad spend", "decide whether to cut the Q3 ad budget"],
     },
   ],
+  layout: [["role"], ["material", "context", "goal", "decision"], ["method", "constraints", "output_format"]],
   fixedConstraints: [],
   rubric: [
     {

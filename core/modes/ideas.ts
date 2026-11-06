@@ -10,6 +10,7 @@ export const ideas = {
       id: "criteria",
       required: true,
       ifMissing: "ask",
+      ask: "what makes an idea good here?",
       present: "Does the prompt state what makes an idea good here?",
       score: "How specific are the criteria for a good idea?",
       examples: ["good ones", "cheap and quick", "low budget, fast to try", "under $500, testable in a week"],
@@ -23,6 +24,7 @@ export const ideas = {
       examples: ["some ideas", "a few quick ideas", "5 options", "5 quick options for tonight"],
     },
   ],
+  layout: [["role"], ["context", "goal"], ["criteria", "constraints", "scale", "output_format"]],
   fixedConstraints: [],
   rubric: [
     { id: "criteria_fit", judge: "jev", question: "Do the ideas meet the criteria and constraints the prompt states?" },

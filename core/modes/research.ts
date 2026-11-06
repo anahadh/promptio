@@ -10,6 +10,7 @@ export const research = {
       id: "scope",
       required: true,
       ifMissing: "ask",
+      ask: "what time, place and depth?",
       present: "Does the prompt state the boundaries of the research, such as time, place or depth?",
       score: "How specific are the research boundaries?",
       examples: ["about EVs", "EV sales trends", "US EV sales in recent years", "US EV sales 2020-2025, broken down by maker"],
@@ -28,6 +29,7 @@ export const research = {
       ],
     },
   ],
+  layout: [["role"], ["context", "goal", "scope"], ["sources", "constraints", "output_format"]],
   fixedConstraints: [],
   rubric: [
     { id: "citations", judge: "jev", question: "Does every factual claim in the output have a citation?" },

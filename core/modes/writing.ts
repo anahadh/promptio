@@ -10,6 +10,7 @@ export const writing = {
       id: "audience",
       required: true,
       ifMissing: "ask",
+      ask: "who will read this?",
       present: "Does the prompt state who will read the text?",
       score: "How specific is the stated reader?",
       examples: [
@@ -23,6 +24,7 @@ export const writing = {
       id: "key_points",
       required: true,
       ifMissing: "ask",
+      ask: "what must it say?",
       present: "Does the prompt state what the text must say?",
       score: "How specific are the points the text must make?",
       examples: [
@@ -36,6 +38,7 @@ export const writing = {
       id: "tone",
       required: true,
       ifMissing: "ask",
+      ask: "what tone should it have?",
       present: "Does the prompt state the voice or tone of the text?",
       score: "How specific is the requested tone?",
       examples: ["make it good", "professional", "warm but direct", "warm but direct, no jargon, peer to peer"],
@@ -44,6 +47,7 @@ export const writing = {
       id: "source_text",
       required: false,
       ifMissing: "ask",
+      ask: "paste your draft or notes",
       present: "Does the prompt include a draft or notes to work from?",
       score: "How complete is the provided draft or notes?",
       examples: [
@@ -54,6 +58,7 @@ export const writing = {
       ],
     },
   ],
+  layout: [["role"], ["context", "goal", "audience", "source_text", "key_points"], ["tone", "constraints", "output_format"]],
   fixedConstraints: [
     "No filler openers or closers (e.g. 'Certainly!', 'I hope this helps').",
     "No stock AI phrasing (e.g. 'delve', 'in today's fast-paced world', 'it's important to note').",

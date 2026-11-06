@@ -6,6 +6,7 @@ export const SHARED_COMPONENTS = [
     id: "goal",
     required: true,
     ifMissing: "ask",
+    ask: "what outcome do you want?",
     present: "Does the prompt state the outcome the user wants?",
     score: "How specific is the stated outcome?",
     examples: [
@@ -19,6 +20,7 @@ export const SHARED_COMPONENTS = [
     id: "context",
     required: true,
     ifMissing: "ask",
+    ask: "what is the situation or background?",
     present: "Does the prompt state the situation or background the answer depends on?",
     score: "How specific is the stated situation or background?",
     examples: ["for my startup", "for a SaaS company", "B2B SaaS with paying customers", "B2B SaaS, 12 customers, Stripe billing"],
@@ -27,13 +29,15 @@ export const SHARED_COMPONENTS = [
     id: "constraints",
     required: false,
     ifMissing: "ask",
+    ask: "any limits or things to avoid?",
     present: "Does the prompt state limits, things that must not change, or things to avoid?",
     score: "How specific are the stated limits?",
     examples: ["keep it simple", "keep dependencies low", "no new dependencies", "no new dependencies; must run on Node 20"],
   },
   {
+    // Required so the "how to respond" paragraph is always useful; a deliberate exception to D16.
     id: "output_format",
-    required: false,
+    required: true,
     ifMissing: "infer",
     present: "Does the prompt state the shape, length or structure of the reply?",
     score: "How specific is the requested reply format?",
