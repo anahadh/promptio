@@ -25,3 +25,5 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      - name: No private docs tracked
+        run: test -z "$(git ls-files docs)" || { echo "Files under docs/ must stay in promptio-private:"; git ls-files docs; exit 1; }
