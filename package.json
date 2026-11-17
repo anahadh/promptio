@@ -14,14 +14,16 @@
     "demo:analyze": "tsx scripts/analyze-demo.ts",
     "jev:viewer": "tsx scripts/jev-viewer.ts",
     "enhance:viewer": "tsx scripts/enhance-viewer.ts",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "intake": "tsx harness/intake.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
     "tsx": "^4.23.15",
     "typescript": "~5.9.3",
     "vitest": "^3.2.4",
-    "wxt": "^0.21.5"
+    "wxt": "^0.21.5",
+    "yaml": "^2.9.1"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.5.0",

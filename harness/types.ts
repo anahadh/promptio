@@ -1,0 +1,7 @@
+/** Task types the loop understands (agent-loop spec, section 5). */
+export const TASK_TYPES = ["docs", "tidy", "tests", "bugfix", "feature", "design"] as const;
+export type TaskType = (typeof TASK_TYPES)[number];
+
+export function isTaskType(value: string): value is TaskType {
+  return (TASK_TYPES as readonly string[]).includes(value);
+}
