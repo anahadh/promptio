@@ -33,6 +33,10 @@ export type ComponentDef = {
   /** Absent + required => weak. Absent + optional => skipped, never injected (D16). */
   readonly required: boolean;
   readonly ifMissing: IfMissing;
+  /** ifMissing "ask": the short question for the user, also used as the [placeholder] text (D30). */
+  readonly ask?: string;
+  /** ifMissing "infer": a fixed default for Haiku to use instead of choosing its own. */
+  readonly inferDefault?: string;
   /** Presence question, "Does the prompt state ...?" (sent to Jev as a Noul question, D19). */
   readonly present: string;
   /** Specificity question, "How specific is ...?" (sent to Jev as a Score question). */
@@ -56,6 +60,13 @@ export type ModeDef = {
   readonly label: string;
   /** Shared components first, then mode-specific ones. */
   readonly components: readonly ComponentDef[];
+  /**
+   * Order of the structured output, as component ids: [role, situation and goal, how to respond].
+   * Every component appears exactly once (checked in modes.test.ts).
+   */
+  readonly layout: readonly [readonly string[], readonly string[], readonly string[]];
+  /** What good guidance covers for this kind of task. Haiku picks what fits the actual request. */
+  readonly guidanceFocus: readonly string[];
   /**
    * Constraints always appended to the enhanced prompt in this mode (e.g. writing anti-slop).
    * TODO: these are first drafts and too thin; expand them for every mode later.

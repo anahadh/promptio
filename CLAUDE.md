@@ -7,8 +7,9 @@ Open-source Chrome extension (MV3). A fire button beside the chat bar on Claude.
 2. Two calls run **in parallel** (`core/analyze-prompt.ts`):
    - **Decomposer** (Haiku 5.5, `core/decompose/`): returns verbatim excerpts per component. Code locates them with offsets and drops anything not in the prompt (D28).
    - **Jev** (TypeSafe, `core/jev/`): one batched request with a Noul (present?) and a 4-level structured Score (how specific?) per component, on the whole prompt (D29).
-3. Each component's status: `ok` (kept verbatim) / `vague` (rewrite) / `missing` (required: infer or ask the user, D22) / `skipped` (optional and absent, never injected, D16/D17).
-4. **Not built yet:** the Haiku rewriter for weak parts (06), reassembly (04), the ask flow (14), and the fire-button UI and site adapters (09).
+3. Each component's status: `ok` / `vague` / `missing` (required: infer or ask the user, D22) / `skipped` (optional and absent, D16/D17).
+4. **Enhancer** (`core/enhance/`, D30-D35): rebuilds the prompt as natural paragraphs in a per-mode layout. One streamed Haiku call per part, in parallel, shown strictly in order, plus a guidance part with task advice. Each excerpt has one owner to limit duplicates. Missing facts become labelled placeholders.
+5. **Not built yet:** inline questions (14), and the fire-button UI and site adapters (09). The extension doesn't use the analyzer or enhancer yet.
 
 ## Layout
 - `core/`: pure TypeScript with no Chrome APIs, reused by the extension and the future eval harness.
@@ -20,6 +21,7 @@ Open-source Chrome extension (MV3). A fire button beside the chat bar on Claude.
 
 ## Commands
 - `npm test` · `npm run typecheck` · `npm run build` · `npm run dev` (Chrome with the extension loaded)
+- `npm run enhance:viewer`: local page to watch a prompt rebuild live, with a before/after review
 - `npm run jev:viewer`: local page showing how Jev classifies any prompt (presence, level distribution, exact questions)
 - `npm run demo:analyze` / `npm run demo:decompose`: HTML reports for the sample prompts
 

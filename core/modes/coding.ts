@@ -10,6 +10,7 @@ export const coding = {
       id: "tech_stack",
       required: true,
       ifMissing: "ask",
+      ask: "which language, framework and files?",
       present: "Does the prompt state the language, framework, versions or files involved?",
       score: "How specific is the stated tech stack?",
       examples: ["my website", "in JS", "React with Vite", "React 18 + Vite, src/auth/Login.tsx"],
@@ -31,6 +32,7 @@ export const coding = {
       id: "current_state",
       required: false,
       ifMissing: "ask",
+      ask: "what happens now, and any errors?",
       present: "Does the prompt state the existing behaviour, error or code?",
       score: "How specific is the description of the current state?",
       examples: [
@@ -40,6 +42,13 @@ export const coding = {
         "throws TypeError: x is undefined on submit; stack trace attached",
       ],
     },
+  ],
+  layout: [["role"], ["tech_stack", "context", "current_state", "goal"], ["constraints", "acceptance", "output_format"]],
+  guidanceFocus: [
+    "find the root cause before fixing",
+    "edge cases to handle",
+    "how to verify it works",
+    "keep the change small and leave unrelated code alone",
   ],
   fixedConstraints: [],
   rubric: [

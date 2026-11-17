@@ -13,6 +13,7 @@
     "demo:decompose": "tsx scripts/decompose-demo.ts",
     "demo:analyze": "tsx scripts/analyze-demo.ts",
     "jev:viewer": "tsx scripts/jev-viewer.ts",
+    "enhance:viewer": "tsx scripts/enhance-viewer.ts",
     "postinstall": "wxt prepare"
   },
   "devDependencies": {

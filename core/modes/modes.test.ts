@@ -40,6 +40,32 @@ describe.each(MODE_IDS)("mode %s", (modeId) => {
     }
   });
 
+  it("gives every ask component a question for the user, and only ask components", () => {
+    for (const c of mode.components) {
+      if (c.ifMissing === "ask") expect(c.ask?.trim().length, c.id).toBeGreaterThan(0);
+      else expect(c.ask, c.id).toBeUndefined();
+    }
+  });
+
+  it("gives guidance something to focus on", () => {
+    expect(mode.guidanceFocus.length).toBeGreaterThan(0);
+  });
+
+  it("only sets a fixed default on infer components", () => {
+    for (const c of mode.components) {
+      if (c.ifMissing !== "infer") expect(c.inferDefault, c.id).toBeUndefined();
+    }
+  });
+
+  it("places every component in the layout exactly once, with role alone first", () => {
+    const [role, situation, response] = mode.layout;
+    expect(role).toEqual(["role"]);
+    expect(situation.length).toBeGreaterThan(0);
+    expect(response.length).toBeGreaterThan(0);
+    const placed = mode.layout.flat();
+    expect([...placed].sort()).toEqual(mode.components.map((c) => c.id).sort());
+  });
+
   it("has a 4-criterion rubric with unique ids, each phrased as a question", () => {
     expect(mode.rubric).toHaveLength(4);
     expect(new Set(mode.rubric.map((r) => r.id)).size).toBe(4);
@@ -68,6 +94,12 @@ describe("cross-mode rules", () => {
     for (const id of MODE_IDS) {
       expect(getComponent(id, "goal")?.required).toBe(true);
       expect(getComponent(id, "context")?.required).toBe(true);
+    }
+  });
+
+  it("requires and infers output_format in every mode, so the last paragraph is always useful", () => {
+    for (const id of MODE_IDS) {
+      expect(getComponent(id, "output_format")).toMatchObject({ required: true, ifMissing: "infer" });
     }
   });
 
