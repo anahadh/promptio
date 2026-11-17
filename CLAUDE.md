@@ -17,7 +17,7 @@ Open-source Chrome extension (MV3). A fire button beside the chat bar on Claude.
   - `modes/`: one data file per mode plus the shared components, checked with `satisfies ModeDef`.
 - `extension/`: the WXT shell (background worker, content script, settings page). API calls belong in the background worker.
 - `scripts/` (gitignored): local live tools; they need `.env.local` (see `.env.example`).
-- `docs/` (gitignored): `plan/` (start with `00-index.md` and `decisions.md`) and `problems.md` (open problems and audit log).
+- `docs/` (gitignored): a local clone of the private repo `promptio-private`. Holds `plan/` (start with `00-index.md` and `decisions.md`), `problems.md` (open problems and audit log), `memory/` (agent-loop run logs and facts) and `evals/cases/`. Never commit it to this repo or quote it in PRs; cite decisions by D-ID.
 
 ## Commands
 - `npm test` · `npm run typecheck` · `npm run build` · `npm run dev` (Chrome with the extension loaded)
