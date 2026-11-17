@@ -1,0 +1,60 @@
+name: Bugfix proof
+
+# Fail-before/pass-after for bot/* bugfix PRs (spec section 6). Shown on the PR and
+# as the unproven-fix label; not a merge gate. PR code runs only in the read-only job.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions: {}
+
+jobs:
+  fail-before-pass-after:
+    if: startsWith(github.head_ref, 'bot/') && contains(github.event.pull_request.labels.*.name, 'type:bugfix')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      proven: ${{ steps.proof.outputs.proven }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: head
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.base_ref }}
+          path: base
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: lts/*
+      - run: npm ci --prefix head
+      - run: npm ci --prefix base
+      - run: git -C head diff --name-only --diff-filter=d "origin/$BASE_REF...HEAD" > changed-files.txt
+        env:
+          BASE_REF: ${{ github.base_ref }}
+      - id: proof
+        run: base/node_modules/.bin/tsx base/harness/gates/fbpa-cli.ts --base base --head head --files changed-files.txt
+
+  label:
+    needs: fail-before-pass-after
+    if: always() && needs.fail-before-pass-after.result != 'skipped'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - if: needs.fail-before-pass-after.outputs.proven == 'false'
+        run: gh pr edit "$PR" --add-label unproven-fix --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+      - if: needs.fail-before-pass-after.outputs.proven == 'true'
+        run: gh pr edit "$PR" --remove-label unproven-fix --repo "$GITHUB_REPOSITORY" || true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}

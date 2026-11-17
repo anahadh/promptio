@@ -1,0 +1,89 @@
+name: Auto-merge
+
+# Decides auto-merge for bot/* PRs (agent-loop spec section 6). Every job runs the
+# base branch's code and config; no job checks out or runs PR code.
+on:
+  workflow_run:
+    workflows: [CI, PR format]
+    types: [completed]
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled, unlabeled, edited]
+
+permissions: {}
+
+concurrency:
+  group: auto-merge-${{ github.event.pull_request.head.ref || github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  # A new push must never ride an earlier approval: turn auto-merge off at once.
+  disable-on-push:
+    if: github.event_name == 'pull_request_target' && github.event.action == 'synchronize' && startsWith(github.head_ref, 'bot/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - run: gh pr merge "$PR" --disable-auto --repo "$GITHUB_REPOSITORY" || true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+
+  gate:
+    needs: disable-on-push
+    if: >-
+      !cancelled() &&
+      ((github.event_name == 'pull_request_target' && startsWith(github.head_ref, 'bot/')) ||
+       (github.event_name == 'workflow_run' && startsWith(github.event.workflow_run.head_branch, 'bot/')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: read
+    outputs:
+      allowed: ${{ steps.gate.outputs.allowed }}
+      pr: ${{ steps.gate.outputs.pr }}
+      sha: ${{ steps.gate.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - id: gate
+        run: npx tsx harness/gates/auto-merge-cli.ts --sha "$SHA"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha }}
+
+  merge:
+    needs: gate
+    if: needs.gate.outputs.allowed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - run: gh pr merge "$PR" --auto --squash --match-head-commit "$SHA" --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ needs.gate.outputs.pr }}
+          SHA: ${{ needs.gate.outputs.sha }}
+
+  # Blocked PRs stay open for the user's review; only auto-merge is turned off.
+  keep-open:
+    needs: gate
+    if: needs.gate.outputs.allowed == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - run: gh pr merge "$PR" --disable-auto --repo "$GITHUB_REPOSITORY" || true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ needs.gate.outputs.pr }}
