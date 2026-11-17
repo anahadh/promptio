@@ -15,7 +15,10 @@
     "jev:viewer": "tsx scripts/jev-viewer.ts",
     "enhance:viewer": "tsx scripts/enhance-viewer.ts",
     "postinstall": "wxt prepare",
-    "intake": "tsx harness/intake.ts"
+    "intake": "tsx harness/intake.ts",
+    "gate:auto-merge": "tsx harness/gates/auto-merge-cli.ts",
+    "gate:pr-format": "tsx harness/gates/pr-format.ts",
+    "gate:fbpa": "tsx harness/gates/fbpa-cli.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

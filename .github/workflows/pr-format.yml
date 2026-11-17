@@ -1,0 +1,31 @@
+name: PR format
+
+# Checks bot/* PR bodies against the section 10a template. Runs the base branch's
+# checker on the body from the event, so a PR can't grade itself.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  pr-format:
+    if: startsWith(github.head_ref, 'bot/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.base_ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - run: npx tsx harness/gates/pr-format.ts
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
