@@ -36,7 +36,7 @@ describe("config", () => {
     expect(cfg.phase).toBe("solo-dev");
     expect(cfg.auto_merge).toEqual(["docs", "tidy", "tests"]);
     expect(cfg.ladder.bugfix).toEqual(["sonnet", "opus"]);
-    expect(cfg.protected_paths).toContain(".github/");
+    expect(cfg.protected_paths).toEqual(expect.arrayContaining([".github/", "harness/", "harness.config.yaml", "CLAUDE.md"]));
     expect(cfg.max_diff_lines).toBe(150);
   });
 

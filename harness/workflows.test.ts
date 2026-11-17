@@ -24,6 +24,7 @@ const ALLOWED_RUN = [
   /^base\/node_modules\/\.bin\/tsx base\/harness\/gates\/fbpa-cli\.ts /,
   /^git -C head diff --name-only --diff-filter=d /,
   /^gh pr (merge|edit) "\$PR" /,
+  /^gh api "repos\/\$GITHUB_REPOSITORY\/statuses\/\$SHA" -f state="\$STATE" -f context=auto-merge-gate /,
 ];
 
 describe("gate workflows", () => {
@@ -33,10 +34,13 @@ describe("gate workflows", () => {
       for (const [name, job] of jobsOf(w)) {
         // Each event branch of a condition needs its own bot/ guard.
         const events = job.if?.match(/github\.event_name == /g)?.length ?? 0;
-        const guards = job.if?.match(/'bot\/'/g)?.length ?? 0;
+        // ...and its own same-repository guard, because a fork can name its branch bot/*.
+        const bots = job.if?.match(/'bot\/'/g)?.length ?? 0;
+        const sameRepo = job.if?.match(/\.full_name == github\.repository/g)?.length ?? 0;
+        const guards = Math.min(bots, sameRepo);
         // A dependency's guard only carries over if this job can't run when that dependency is skipped.
         const runsAnyway = /always\(\)|cancelled\(\)/.test(job.if ?? "");
-        const inherits = needsOf(job).some((n) => guarded.has(n) && (!runsAnyway || job.if!.includes(`needs.${n}.result != 'skipped'`)));
+        const inherits = needsOf(job).some((n) => guarded.has(n) && (!runsAnyway || job.if!.includes(`needs.${n}.result != 'skipped'`) || job.if!.includes(`needs.${n}.result == 'success'`)));
         if ((guards > 0 && guards >= events) || inherits) guarded.add(name);
       }
       expect(jobsOf(w).map(([n]) => n).filter((n) => !guarded.has(n)), w.name).toEqual([]);
@@ -58,7 +62,7 @@ describe("gate workflows", () => {
     const runs = jobsOf(wf["auto-merge.yml"]).flatMap(([, j]) => j.steps.map((s) => s.run ?? ""));
     expect(runs.filter((r) => r.includes("--auto ")).every((r) => /gh pr merge "\$PR" --auto --squash --match-head-commit "\$SHA"/.test(r))).toBe(true);
     expect(runs.some((r) => r.includes("--auto --squash"))).toBe(true);
-    expect(wf["auto-merge.yml"].jobs.merge?.if).toBe("needs.gate.outputs.allowed == 'true'");
+    expect(wf["auto-merge.yml"].jobs.merge?.if).toContain("needs.gate.outputs.allowed == 'true'");
     for (const w of Object.values(wf)) expect(JSON.stringify(w)).not.toMatch(/gh pr close|--admin/);
   });
 
@@ -113,5 +117,25 @@ describe("gate workflows", () => {
       expect.stringMatching(/proven == 'false' => gh pr edit "\$PR" --add-label unproven-fix/),
       expect.stringMatching(/proven == 'true' => gh pr edit "\$PR" --remove-label unproven-fix/),
     ]);
+  });
+
+  it("auto-merge posts the auto-merge-gate status from a job that checks out nothing", () => {
+    const job = wf["auto-merge.yml"].jobs.status!;
+    expect(job.permissions).toEqual({ statuses: "write" });
+    expect(needsOf(job)).toEqual(["gate"]);
+    expect(job.if).toContain("needs.gate.outputs.state != ''");
+    expect(job.steps.map((s) => s.run)).toEqual([expect.stringContaining("-f context=auto-merge-gate")]);
+  });
+
+  // Found live: merge was skipped because disable-on-push (skipped) is an ancestor.
+  it("jobs downstream of a skippable job don't rely on the implicit success()", () => {
+    for (const w of Object.values(wf)) {
+      const ancestors = (name: string): string[] =>
+        needsOf(w.jobs[name]!).flatMap((n) => [n, ...ancestors(n)]);
+      for (const [name, job] of jobsOf(w)) {
+        if (!ancestors(name).some((a) => w.jobs[a]?.if)) continue;
+        expect(job.if ?? "", `${w.name}/${name}`).toMatch(/!cancelled\(\)|always\(\)/);
+      }
+    }
   });
 });

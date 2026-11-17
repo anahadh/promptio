@@ -79,6 +79,9 @@ export function evaluateAutoMerge(pr: PrData, cfg: HarnessConfig): GateResult {
   // Rule 4: the type's file rule.
   if (type && cfg.auto_merge.includes(type)) reasons.push(...fileRuleFailures(type, pr.files));
 
+  // Only branches in this repository: a fork can name its branch bot/*.
+  if (pr.fromFork) reasons.push("PR comes from a fork; only branches in this repository can auto-merge");
+
   // Rule 5: branch name.
   if (!BRANCH.test(pr.branch)) reasons.push(`branch "${pr.branch}" does not match bot/<task-id>-<slug>`);
 
@@ -87,4 +90,17 @@ export function evaluateAutoMerge(pr: PrData, cfg: HarnessConfig): GateResult {
     reasons.push(`project has ${pr.testCount} tests, below min_tests_for_auto_merge ${cfg.min_tests_for_auto_merge}`);
   }
   return { allowed: reasons.length === 0, reasons };
+}
+
+const WAITING = /^check ".*" (has not run|is (queued|in_progress|waiting|requested|pending))$/;
+
+/** The auto-merge-gate commit status: success, pending (only waiting on checks) or failure. */
+export function gateStatus(result: GateResult): { state: "success" | "pending" | "failure"; description: string } {
+  if (result.allowed) return { state: "success", description: "Passes every auto-merge rule" };
+  const blocking = result.reasons.filter((r) => !WAITING.test(r));
+  if (blocking.length === 0) return { state: "pending", description: "Waiting for required checks" };
+  const extra = blocking.length > 1 ? ` (+${blocking.length - 1} more)` : "";
+  const room = 140 - extra.length;
+  const first = blocking[0]!;
+  return { state: "failure", description: (first.length > room ? `${first.slice(0, room - 1)}…` : first) + extra };
 }

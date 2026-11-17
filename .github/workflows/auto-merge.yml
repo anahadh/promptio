@@ -18,7 +18,7 @@ concurrency:
 jobs:
   # A new push must never ride an earlier approval: turn auto-merge off at once.
   disable-on-push:
-    if: github.event_name == 'pull_request_target' && github.event.action == 'synchronize' && startsWith(github.head_ref, 'bot/')
+    if: github.event_name == 'pull_request_target' && github.event.action == 'synchronize' && startsWith(github.head_ref, 'bot/') && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -29,12 +29,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
 
+  # Jobs below gate need !cancelled(): without it GitHub adds success(), which also
+  # requires disable-on-push (an ancestor, skipped on most events) to have succeeded.
   gate:
     needs: disable-on-push
     if: >-
       !cancelled() &&
-      ((github.event_name == 'pull_request_target' && startsWith(github.head_ref, 'bot/')) ||
-       (github.event_name == 'workflow_run' && startsWith(github.event.workflow_run.head_branch, 'bot/')))
+      ((github.event_name == 'pull_request_target' && startsWith(github.head_ref, 'bot/') &&
+        github.event.pull_request.head.repo.full_name == github.repository) ||
+       (github.event_name == 'workflow_run' && startsWith(github.event.workflow_run.head_branch, 'bot/') &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -45,6 +49,8 @@ jobs:
       allowed: ${{ steps.gate.outputs.allowed }}
       pr: ${{ steps.gate.outputs.pr }}
       sha: ${{ steps.gate.outputs.sha }}
+      state: ${{ steps.gate.outputs.state }}
+      description: ${{ steps.gate.outputs.description }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -60,9 +66,25 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha }}
 
+  # Posts the auto-merge-gate status. The main ruleset requires it (source: GitHub Actions),
+  # so a bot PR can only merge when this gate says so.
+  status:
+    needs: gate
+    if: ${{ !cancelled() && needs.gate.result == 'success' && needs.gate.outputs.state != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+    steps:
+      - run: gh api "repos/$GITHUB_REPOSITORY/statuses/$SHA" -f state="$STATE" -f context=auto-merge-gate -f description="$DESCRIPTION"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ needs.gate.outputs.sha }}
+          STATE: ${{ needs.gate.outputs.state }}
+          DESCRIPTION: ${{ needs.gate.outputs.description }}
+
   merge:
     needs: gate
-    if: needs.gate.outputs.allowed == 'true'
+    if: ${{ !cancelled() && needs.gate.result == 'success' && needs.gate.outputs.allowed == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -77,7 +99,7 @@ jobs:
   # Blocked PRs stay open for the user's review; only auto-merge is turned off.
   keep-open:
     needs: gate
-    if: needs.gate.outputs.allowed == 'false'
+    if: ${{ !cancelled() && needs.gate.result == 'success' && needs.gate.outputs.allowed == 'false' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
