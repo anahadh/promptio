@@ -1,0 +1,22 @@
+project: promptio
+harness_version: 0.1.0
+phase: solo-dev            # the loop only runs in this phase
+min_tests_for_auto_merge: 5  # below this, nothing auto-merges
+checks: ["npm run typecheck", "npm test"]
+setup: "npm ci"
+intake: docs/problems.md
+semantic: [CLAUDE.md, docs/plan/decisions.md, docs/memory/facts.md]
+auto_merge: [docs, tidy, tests]
+pr_only: [bugfix, feature]
+plan_only: [design]
+ladder:
+  docs: [haiku]
+  tidy: [haiku, sonnet]
+  tests: [sonnet]
+  bugfix: [sonnet, opus]
+  feature: [sonnet, opus]
+protected_paths: [".github/", "harness/", "extension/lib/keys.ts", "package.json"]
+max_tasks_per_night: 3
+max_features_per_night: 1
+max_diff_lines: 150
+budget_usd_month: 20
