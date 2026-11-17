@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { loadConfig } from "../config";
-import { evaluateAutoMerge } from "./auto-merge";
+import { evaluateAutoMerge, gateStatus } from "./auto-merge";
 import { countTests, ghJson, headSha, isStale, prForSha, toPrData } from "./github";
 import { writeOutputs, writeSummary } from "./outputs";
 
@@ -37,7 +37,8 @@ function main(argv: string[]): number {
 
   const result = evaluateAutoMerge(toPrData(pull, files, checks, testCount), loadConfig());
   console.log(JSON.stringify({ pr, sha: head, ...result }, null, 2));
-  writeOutputs({ allowed: String(result.allowed), pr: String(pr), sha: head });
+  const status = gateStatus(result);
+  writeOutputs({ allowed: String(result.allowed), pr: String(pr), sha: head, state: status.state, description: status.description });
   writeSummary(
     result.allowed
       ? `PR #${pr} passes every auto-merge rule; enabling auto-merge for ${head}.`

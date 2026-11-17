@@ -3,7 +3,8 @@ import { countTests, isStale, toPrData } from "./github";
 
 const pull = {
   number: 7,
-  head: { ref: "bot/P-1-x", sha: "abc" },
+  head: { ref: "bot/P-1-x", sha: "abc", repo: { full_name: "anahadh/promptio" } },
+  base: { repo: { full_name: "anahadh/promptio" } },
   labels: [{ name: "type:docs" }, { name: "x" }],
   additions: 3,
   deletions: 1,
@@ -24,7 +25,13 @@ describe("github data", () => {
       deletions: 1,
       checks: [{ name: "checks", status: "completed", conclusion: "success", startedAt: "2026-11-17T00:00:00Z" }],
       testCount: 42,
+      fromFork: false,
     });
+  });
+
+  it("marks a PR from another repository, or a deleted fork, as fromFork", () => {
+    expect(toPrData({ ...pull, head: { ...pull.head, repo: { full_name: "stranger/promptio" } } }, files, runs, 1).fromFork).toBe(true);
+    expect(toPrData({ ...pull, head: { ...pull.head, repo: null } }, files, runs, 1).fromFork).toBe(true);
   });
 
   it("maps a renamed file with its previous path", () => {
@@ -32,7 +39,7 @@ describe("github data", () => {
   });
 
   it("rejects a pull payload missing head.ref and names it", () => {
-    expect(() => toPrData({ ...pull, head: { sha: "abc" } }, files, runs, 1)).toThrow(/head\.ref/);
+    expect(() => toPrData({ ...pull, head: { sha: "abc", repo: pull.head.repo } }, files, runs, 1)).toThrow(/head\.ref/);
   });
 
   it("rejects files JSON that isn't a list", () => {

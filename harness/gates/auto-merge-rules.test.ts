@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { loadConfig } from "../config";
-import { evaluateAutoMerge, isProtected } from "./auto-merge";
+import { evaluateAutoMerge, gateStatus, isProtected } from "./auto-merge";
 import { check, file, goodPr } from "./fixtures";
 import type { PrData } from "./types";
 
@@ -24,17 +24,23 @@ describe("auto-merge: rule 3 (size and protected paths)", () => {
       expect(r.reasons.join()).toContain(`protected path ${path}`);
     },
   );
+  it.each(["CLAUDE.md", "harness.config.yaml"])("agent instructions and loop config are protected: %s", (path) => {
+    const r = gate({ labels: [path.endsWith(".md") ? "type:docs" : "type:tidy"], files: [file(path)] });
+    expect(r.allowed).toBe(false);
+    expect(r.reasons.join()).toContain(`protected path ${path}`);
+  });
   it("rename out of a protected path blocks", () => {
     const r = gate({ files: [file("NOTES.md", "renamed", "harness/NOTES.md")] });
     expect(r.allowed).toBe(false);
     expect(r.reasons.join()).toContain("protected path harness/NOTES.md");
   });
   it("protected prefix doesn't match a similar name", () => {
-    expect(isProtected("harness.config.yaml", cfg.protected_paths)).toBe(false);
-    expect(isProtected("package.json.bak", cfg.protected_paths)).toBe(false);
-    expect(isProtected("extension/lib/keys.test.ts", cfg.protected_paths)).toBe(false);
-    expect(isProtected(".github/x", cfg.protected_paths)).toBe(true);
-    expect(isProtected("package.json", cfg.protected_paths)).toBe(true);
+    const paths = ["harness/", "package.json", "extension/lib/keys.ts"];
+    expect(isProtected("harness.config.yaml", paths)).toBe(false);
+    expect(isProtected("package.json.bak", paths)).toBe(false);
+    expect(isProtected("extension/lib/keys.test.ts", paths)).toBe(false);
+    expect(isProtected("harness/x.ts", paths)).toBe(true);
+    expect(isProtected("package.json", paths)).toBe(true);
   });
 });
 
@@ -50,6 +56,12 @@ describe("auto-merge: rule 5 (branch name)", () => {
 });
 
 describe("auto-merge: project-wide", () => {
+  it("PR from a fork is blocked", () => {
+    const r = gate({ fromFork: true });
+    expect(r.allowed).toBe(false);
+    expect(r.reasons.join()).toMatch(/fork/);
+  });
+
   it("below min_tests_for_auto_merge blocks every type", () => {
     for (const t of ["docs", "tidy", "tests"]) {
       const r = gate({ labels: [`type:${t}`], files: [file(t === "tests" ? "a.test.ts" : "README.md")], testCount: 4 });
@@ -70,5 +82,22 @@ describe("auto-merge: project-wide", () => {
     });
     expect(r.allowed).toBe(false);
     expect(r.reasons.length).toBeGreaterThanOrEqual(6);
+  });
+});
+
+describe("gateStatus", () => {
+  it("maps an allowed result to success", () => {
+    expect(gateStatus({ allowed: true, reasons: [] })).toEqual({ state: "success", description: "Passes every auto-merge rule" });
+  });
+  it("maps a result waiting only on checks to pending", () => {
+    expect(gateStatus({ allowed: false, reasons: ['check "checks" is in_progress', 'check "pr-format" has not run'] }).state).toBe("pending");
+  });
+  it("maps any other block to failure with the first reason", () => {
+    const r = gateStatus({ allowed: false, reasons: ['check "checks" is in_progress', "touches protected path package.json"] });
+    expect(r.state).toBe("failure");
+    expect(r.description).toContain("touches protected path package.json");
+  });
+  it("keeps the description within GitHub's 140-character limit", () => {
+    expect(gateStatus({ allowed: false, reasons: ["x".repeat(300)] }).description.length).toBeLessThanOrEqual(140);
   });
 });

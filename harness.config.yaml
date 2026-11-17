@@ -15,7 +15,7 @@ ladder:
   tests: [sonnet]
   bugfix: [sonnet, opus]
   feature: [sonnet, opus]
-protected_paths: [".github/", "harness/", "extension/lib/keys.ts", "package.json"]
+protected_paths: [".github/", "harness/", "harness.config.yaml", "CLAUDE.md", "extension/lib/keys.ts", "package.json"]
 max_tasks_per_night: 3
 max_features_per_night: 1
 max_diff_lines: 150

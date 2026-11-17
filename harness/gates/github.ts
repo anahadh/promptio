@@ -6,7 +6,8 @@ import type { PrData } from "./types";
 
 const Pull = z.object({
   number: z.number().int(),
-  head: z.object({ ref: z.string(), sha: z.string() }),
+  head: z.object({ ref: z.string(), sha: z.string(), repo: z.object({ full_name: z.string() }).nullable() }),
+  base: z.object({ repo: z.object({ full_name: z.string() }) }),
   labels: z.array(z.object({ name: z.string() })),
   additions: z.number().int().nonnegative(),
   deletions: z.number().int().nonnegative(),
@@ -40,6 +41,7 @@ export function toPrData(pull: unknown, files: unknown, checkRuns: unknown, test
     deletions: p.deletions,
     checks: c.map((x) => ({ name: x.name, status: x.status, conclusion: x.conclusion, startedAt: x.started_at ?? "" })),
     testCount,
+    fromFork: p.head.repo?.full_name !== p.base.repo.full_name,
   };
 }
 

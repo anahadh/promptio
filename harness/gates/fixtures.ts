@@ -17,6 +17,7 @@ export const goodPr = (over: Partial<PrData> = {}): PrData => ({
   deletions: 2,
   checks: [check("checks"), check("pr-format")],
   testCount: 300,
+  fromFork: false,
   ...over,
 });
 

@@ -23,6 +23,8 @@ export interface PrData {
   checks: CheckRun[];
   /** Tests collected on the base branch. */
   testCount: number;
+  /** Head branch lives in another repository (or a deleted one). */
+  fromFork: boolean;
 }
 
 export interface GateResult {
